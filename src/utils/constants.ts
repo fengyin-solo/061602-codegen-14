@@ -1,4 +1,4 @@
-import type { Weather, WeatherEffect, BerryType, GrowthStage, Personality } from '@/types/game'
+import type { Weather, WeatherEffect, BerryType, GrowthStage, Personality, VisitorType, VisitorRating } from '@/types/game'
 
 export const ATTR_MIN = 0
 export const ATTR_MAX = 100
@@ -110,3 +110,90 @@ export const BIRD_NAMES = [
   '糖糖', '圆圆', '小米', '小麦', '云朵', '星星', '月亮', '太阳',
   '小橘', '小蓝', '小绿', '小红', '阿黄', '阿白', '阿黑', '阿灰',
 ]
+
+export const VISITOR_DAY_INTERVAL = 2
+
+export const VISITOR_NAMES: Record<VisitorType, string> = {
+  birdWatcher: '观鸟爱好者',
+  photographer: '自然摄影师',
+  scientist: '鸟类研究员',
+  child: '小朋友',
+  elder: '退休长者',
+}
+
+export const VISITOR_EMOJI: Record<VisitorType, string> = {
+  birdWatcher: '🔭',
+  photographer: '📷',
+  scientist: '🔬',
+  child: '👧',
+  elder: '👴',
+}
+
+export const VISITOR_RATING_NAMES: Record<VisitorRating, string> = {
+  bad: '不太满意',
+  normal: '还不错',
+  good: '非常棒',
+  excellent: '太完美了',
+}
+
+export const VISITOR_RATING_COLORS: Record<VisitorRating, string> = {
+  bad: 'from-red-500 to-rose-600',
+  normal: 'from-blue-500 to-indigo-600',
+  good: 'from-green-500 to-emerald-600',
+  excellent: 'from-amber-400 to-yellow-500',
+}
+
+export const VISITOR_COMMENTS: Record<VisitorType, Record<VisitorRating, string[]>> = {
+  birdWatcher: {
+    bad: ['鸟儿们看起来不太精神啊...', '状态一般，希望下次能更好。'],
+    normal: ['还不错，能看到这么多鸟儿。', '鸟群还算健康，继续努力。'],
+    good: ['太棒了！鸟儿们都很有活力！', '这是我见过最健康的鸟群之一！'],
+    excellent: ['太完美了！简直是观鸟者的天堂！', '我会推荐给所有观鸟的朋友！'],
+  },
+  photographer: {
+    bad: ['光线和状态都不太好拍...', '鸟儿们没什么精神，很难出片。'],
+    normal: ['还可以，能拍几张照片。', '鸟群状态还行，有几张好照片。'],
+    good: ['太美了！每一张都是大片！', '鸟儿们毛色亮丽，太好拍了！'],
+    excellent: ['这画面！直接可以当封面！', '完美的光影，完美的鸟群！'],
+  },
+  scientist: {
+    bad: ['数据不太乐观，需要改善。', '鸟群健康指数偏低。'],
+    normal: ['数据在正常范围内，还可以。', '鸟群状态基本符合预期。'],
+    good: ['数据很漂亮！研究价值很高！', '鸟群健康度远超平均水平！'],
+    excellent: ['完美的数据！教科书级别的鸟群！', '这是我研究过最健康的鸟群！'],
+  },
+  child: {
+    bad: ['小鸟们好像不开心...', '希望小鸟们能更快乐一点。'],
+    normal: ['好可爱的小鸟！', '小鸟们真好玩~'],
+    good: ['太可爱啦！我想天天来看！', '小鸟们好活泼，我好喜欢！'],
+    excellent: ['哇！这是我见过最棒的小鸟！', '我要告诉所有小伙伴这里有超可爱的小鸟！'],
+  },
+  elder: {
+    bad: ['鸟儿们看着让人心疼...', '需要更细心地照顾啊。'],
+    normal: ['还不错，小鸟们挺安逸的。', '鸟群状态还算平稳。'],
+    good: ['真好啊，鸟儿们都很幸福的样子。', '看着它们心情都变好了。'],
+    excellent: ['太棒了！这才是养鸟的最高境界！', '能把鸟照顾成这样，真是有心人！'],
+  },
+}
+
+export const VISITOR_REWARDS: Record<VisitorRating, { food: number; scoreBonus: number }> = {
+  bad: { food: 5, scoreBonus: 0 },
+  normal: { food: 15, scoreBonus: 5 },
+  good: { food: 30, scoreBonus: 12 },
+  excellent: { food: 50, scoreBonus: 20 },
+}
+
+export const VISITOR_CRITERIA_WEIGHTS: Record<VisitorType, { health: number; count: number; diversity: number; fear: number }> = {
+  birdWatcher: { health: 0.4, count: 0.3, diversity: 0.2, fear: 0.1 },
+  photographer: { health: 0.5, count: 0.1, diversity: 0.3, fear: 0.1 },
+  scientist: { health: 0.3, count: 0.4, diversity: 0.2, fear: 0.1 },
+  child: { health: 0.2, count: 0.2, diversity: 0.1, fear: 0.5 },
+  elder: { health: 0.4, count: 0.1, diversity: 0.1, fear: 0.4 },
+}
+
+export const VISITOR_RATING_THRESHOLDS: Record<VisitorRating, number> = {
+  bad: 0,
+  normal: 40,
+  good: 70,
+  excellent: 90,
+}

@@ -56,6 +56,7 @@ export interface GameState {
   eventLog: { id: string; message: string; type: string; timestamp: number }[]
   score?: GameScore
   selectedBirdId?: string
+  visitorDay: VisitorDayState
 }
 
 export interface GameScore {
@@ -64,6 +65,7 @@ export interface GameScore {
   avgHealth: number
   breedingBonus: number
   personalityBonus: number
+  visitorBonus: number
   stars: number
   rank: string
 }
@@ -74,4 +76,29 @@ export interface WeatherEffect {
   healthMod: number
   awayChance?: number
   sickChance?: number
+}
+
+export type VisitorType = 'birdWatcher' | 'photographer' | 'scientist' | 'child' | 'elder'
+
+export type VisitorRating = 'bad' | 'normal' | 'good' | 'excellent'
+
+export interface Visitor {
+  id: string
+  type: VisitorType
+  name: string
+  rating: VisitorRating
+  comment: string
+  reward: {
+    food: number
+    scoreBonus: number
+  }
+}
+
+export interface VisitorDayState {
+  isActive: boolean
+  currentVisitor: Visitor | null
+  showModal: boolean
+  totalVisitors: number
+  bestRating: VisitorRating | null
+  visitorHistory: Visitor[]
 }

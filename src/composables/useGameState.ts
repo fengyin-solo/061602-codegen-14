@@ -1,5 +1,5 @@
 import { reactive, computed, watch } from 'vue'
-import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore } from '@/types/game'
+import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore, VisitorType, VisitorRating, Visitor } from '@/types/game'
 import {
   ATTR_MIN, ATTR_MAX, DEATH_THRESHOLD,
   STAGE_DURATION, FOOD_NEED_MULTIPLIER,
@@ -8,6 +8,9 @@ import {
   BERRY_VALUES, WEATHER_CHANGE_INTERVAL, WEATHER_EFFECTS,
   DAY_DURATION, INITIAL_FOOD, MIN_EGGS, MAX_EGGS,
   MAX_BREEDING_ROUNDS, BIRD_NAMES,
+  VISITOR_DAY_INTERVAL, VISITOR_NAMES, VISITOR_EMOJI,
+  VISITOR_RATING_NAMES, VISITOR_COMMENTS, VISITOR_REWARDS,
+  VISITOR_CRITERIA_WEIGHTS, VISITOR_RATING_THRESHOLDS,
 } from '@/utils/constants'
 import { randomInt, randomFloat, clamp, randomChoice, generateId, chance } from '@/utils/random'
 import { saveGame, loadGame, clearSave } from '@/utils/storage'
@@ -26,6 +29,14 @@ const createInitialState = (): GameState => ({
   breedingCount: 0,
   maxBreedingRounds: MAX_BREEDING_ROUNDS,
   eventLog: [],
+  visitorDay: {
+    isActive: false,
+    currentVisitor: null,
+    showModal: false,
+    totalVisitors: 0,
+    bestRating: null,
+    visitorHistory: [],
+  },
 })
 
 const state = reactive<GameState>(createInitialState())
@@ -37,6 +48,8 @@ const PERSONALITIES: Personality[] = ['bold', 'shy', 'gentle', 'curious', 'stubb
 const WEATHERS: Weather[] = ['sunny', 'rainy', 'snowy', 'stormy']
 const BERRY_TYPES: BerryType[] = ['red', 'red', 'red', 'blue', 'blue', 'golden']
 const GROWTH_ORDER: GrowthStage[] = ['egg', 'chick', 'juvenile', 'subadult', 'adult']
+const VISITOR_TYPES: VisitorType[] = ['birdWatcher', 'photographer', 'scientist', 'child', 'elder']
+const VISITOR_RATINGS: VisitorRating[] = ['excellent', 'good', 'normal', 'bad']
 
 const usedNames = new Set<string>()
 
@@ -89,6 +102,85 @@ const addEventLog = (message: string, type: string = 'info') => {
   if (state.eventLog.length > 50) state.eventLog.pop()
 }
 
+const evaluateFlock = (visitorType: VisitorType): VisitorRating => {
+  const aliveBirds = state.birds.filter(b => !b.isDead && b.stage !== 'egg')
+  if (aliveBirds.length === 0) return 'bad'
+
+  const avgHealth = aliveBirds.reduce((s, b) => s + b.health, 0) / aliveBirds.length
+  const avgFear = aliveBirds.reduce((s, b) => s + b.fear, 0) / aliveBirds.length
+  const countScore = Math.min(aliveBirds.length / 6, 1) * 100
+  const personalities = new Set(aliveBirds.map(b => b.personality))
+  const diversityScore = (personalities.size / PERSONALITIES.length) * 100
+  const happinessScore = 100 - avgFear
+
+  const weights = VISITOR_CRITERIA_WEIGHTS[visitorType]
+  const score =
+    avgHealth * weights.health +
+    countScore * weights.count +
+    diversityScore * weights.diversity +
+    happinessScore * weights.fear
+
+  for (const rating of VISITOR_RATINGS) {
+    if (score >= VISITOR_RATING_THRESHOLDS[rating]) {
+      return rating
+    }
+  }
+  return 'bad'
+}
+
+const createVisitor = (): Visitor => {
+  const type = randomChoice(VISITOR_TYPES)
+  const rating = evaluateFlock(type)
+  const comments = VISITOR_COMMENTS[type][rating]
+  const comment = randomChoice(comments)
+  const reward = VISITOR_REWARDS[rating]
+
+  return {
+    id: generateId(),
+    type,
+    name: VISITOR_NAMES[type],
+    rating,
+    comment,
+    reward: {
+      food: reward.food,
+      scoreBonus: reward.scoreBonus,
+    },
+  }
+}
+
+const triggerVisitorDay = () => {
+  if (state.visitorDay.isActive) return
+  if (state.birds.filter(b => !b.isDead && b.stage !== 'egg').length === 0) return
+
+  const visitor = createVisitor()
+  state.visitorDay.isActive = true
+  state.visitorDay.currentVisitor = visitor
+  state.visitorDay.showModal = true
+  state.visitorDay.totalVisitors++
+  state.visitorDay.visitorHistory.push(visitor)
+
+  const currentBest = state.visitorDay.bestRating
+  if (!currentBest || VISITOR_RATINGS.indexOf(visitor.rating) < VISITOR_RATINGS.indexOf(currentBest)) {
+    state.visitorDay.bestRating = visitor.rating
+  }
+
+  addEventLog(`👀 访客观察日！${VISITOR_EMOJI[visitor.type]} ${visitor.name} 来拜访了~`, 'info')
+}
+
+const closeVisitorModal = () => {
+  const visitor = state.visitorDay.currentVisitor
+  if (visitor) {
+    state.foodStock += visitor.reward.food
+    addEventLog(
+      `🎁 ${visitor.name} 评价：${VISITOR_RATING_NAMES[visitor.rating]}！获得 ${visitor.reward.food} 食物${visitor.reward.scoreBonus > 0 ? ` +${visitor.reward.scoreBonus} 积分` : ''}`,
+      visitor.rating === 'excellent' || visitor.rating === 'good' ? 'success' : visitor.rating === 'bad' ? 'warning' : 'info'
+    )
+  }
+  state.visitorDay.showModal = false
+  state.visitorDay.isActive = false
+  state.visitorDay.currentVisitor = null
+}
+
 const startGame = () => {
   Object.assign(state, createInitialState())
   usedNames.clear()
@@ -137,6 +229,10 @@ const updateGame = (deltaMs: number) => {
     state.dayProgress -= 1
     state.day += 1
     addEventLog(`📅 第 ${state.day} 天开始了！`, 'info')
+
+    if (state.day > 1 && state.day % VISITOR_DAY_INTERVAL === 0) {
+      setTimeout(() => triggerVisitorDay(), 1500)
+    }
   }
 
   if (Date.now() >= state.nextWeatherChangeAt) {
@@ -422,11 +518,14 @@ const calculateScore = (): GameScore => {
     ? aliveBirds.reduce((s, b) => s + (b.feedingCount > 10 ? 5 : 2), 0)
     : 0
 
+  const visitorBonus = state.visitorDay.visitorHistory.reduce((sum, v) => sum + v.reward.scoreBonus, 0)
+
   const totalScore = Math.round(
     survivalRate * 40 +
     avgHealth * 0.3 +
     breedingBonus +
-    personalityBonus
+    personalityBonus +
+    visitorBonus
   )
 
   let stars = 1
@@ -435,11 +534,20 @@ const calculateScore = (): GameScore => {
   else if (totalScore >= 50) stars = 3
   else if (totalScore >= 30) stars = 2
 
-  const rank = stars >= 5 ? '🏆 传奇养鸟人'
+  let rank = stars >= 5 ? '🏆 传奇养鸟人'
     : stars === 4 ? '🥇 金牌养鸟人'
     : stars === 3 ? '🥈 银牌养鸟人'
     : stars === 2 ? '🥉 铜牌养鸟人'
     : '🌱 新手养鸟人'
+
+  const bestRating = state.visitorDay.bestRating
+  if (bestRating === 'excellent' && state.visitorDay.totalVisitors >= 3) {
+    rank = '🌟 明星养鸟人'
+  } else if (bestRating === 'excellent') {
+    rank = '✨ 口碑养鸟人'
+  } else if (bestRating === 'good' && state.visitorDay.totalVisitors >= 2) {
+    rank = '💫 人气养鸟人'
+  }
 
   return {
     totalScore: clamp(totalScore, 0, 100),
@@ -447,6 +555,7 @@ const calculateScore = (): GameScore => {
     avgHealth: Math.round(avgHealth),
     breedingBonus,
     personalityBonus,
+    visitorBonus,
     stars,
     rank,
   }
@@ -504,6 +613,7 @@ export function useGameState() {
     restartGame,
     returnToStart,
     tryLoadGame,
+    closeVisitorModal,
     allAdults,
     aliveCount,
   }

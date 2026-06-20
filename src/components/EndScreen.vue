@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameState } from '@/composables/useGameState'
+import { VISITOR_EMOJI, VISITOR_RATING_NAMES } from '@/utils/constants'
 
 const router = useRouter()
 const { state, restartGame, returnToStart } = useGameState()
@@ -68,30 +69,36 @@ const handleHome = () => {
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-8">
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">💚</div>
-            <div class="text-white/60 text-xs mb-1">成活率</div>
-            <div class="font-bold text-2xl text-green-400">{{ score.survivalRate }}%</div>
-          </div>
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">💚</div>
+              <div class="text-white/60 text-xs mb-1">成活率</div>
+              <div class="font-bold text-2xl text-green-400">{{ score.survivalRate }}%</div>
+            </div>
 
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">❤️</div>
-            <div class="text-white/60 text-xs mb-1">平均健康</div>
-            <div class="font-bold text-2xl text-red-400">{{ score.avgHealth }}</div>
-          </div>
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">❤️</div>
+              <div class="text-white/60 text-xs mb-1">平均健康</div>
+              <div class="font-bold text-2xl text-red-400">{{ score.avgHealth }}</div>
+            </div>
 
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">💝</div>
-            <div class="text-white/60 text-xs mb-1">繁殖加成</div>
-            <div class="font-bold text-2xl text-pink-400">+{{ score.breedingBonus }}</div>
-          </div>
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">💝</div>
+              <div class="text-white/60 text-xs mb-1">繁殖加成</div>
+              <div class="font-bold text-2xl text-pink-400">+{{ score.breedingBonus }}</div>
+            </div>
 
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">🌟</div>
-            <div class="text-white/60 text-xs mb-1">照料加成</div>
-            <div class="font-bold text-2xl text-amber-400">+{{ score.personalityBonus }}</div>
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">🌟</div>
+              <div class="text-white/60 text-xs mb-1">照料加成</div>
+              <div class="font-bold text-2xl text-amber-400">+{{ score.personalityBonus }}</div>
+            </div>
+
+            <div v-if="score.visitorBonus > 0" class="bg-white/5 rounded-2xl p-4 text-center border border-white/10 col-span-2">
+              <div class="text-3xl mb-2">👀</div>
+              <div class="text-white/60 text-xs mb-1">访客口碑加成</div>
+              <div class="font-bold text-2xl text-purple-400">+{{ score.visitorBonus }}</div>
+            </div>
           </div>
-        </div>
 
         <div class="bg-gradient-to-r from-amber-500/10 to-rose-500/10 rounded-2xl p-5 mb-6 border border-amber-400/20">
           <div class="text-center">
@@ -105,6 +112,7 @@ const handleHome = () => {
               <span>💔 离世 {{ state.totalDied }} 只</span>
               <span>💝 繁殖 {{ state.breedingCount }} 窝</span>
               <span>🐦 存活 {{ state.birds.filter(b => !b.isDead).length }} 只</span>
+              <span v-if="state.visitorDay.totalVisitors > 0">👀 访客 {{ state.visitorDay.totalVisitors }} 位</span>
             </div>
           </div>
         </div>
@@ -119,6 +127,31 @@ const handleHome = () => {
             >
               <span>🐦</span>
               <span class="font-medium">{{ bird.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="state.visitorDay.visitorHistory.length > 0" class="mb-6">
+          <div class="text-white/60 text-sm text-center mb-3">👀 访客评价记录</div>
+          <div class="flex flex-wrap justify-center gap-2">
+            <div
+              v-for="visitor in state.visitorDay.visitorHistory"
+              :key="visitor.id"
+              class="bg-white/10 px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+            >
+              <span class="text-lg">{{ VISITOR_EMOJI[visitor.type] }}</span>
+              <span class="text-white/90">{{ visitor.name }}</span>
+              <span
+                :class="[
+                  'text-xs px-2 py-0.5 rounded-full',
+                  visitor.rating === 'excellent' ? 'bg-amber-500/30 text-amber-300' :
+                  visitor.rating === 'good' ? 'bg-green-500/30 text-green-300' :
+                  visitor.rating === 'normal' ? 'bg-blue-500/30 text-blue-300' :
+                  'bg-red-500/30 text-red-300',
+                ]"
+              >
+                {{ VISITOR_RATING_NAMES[visitor.rating] }}
+              </span>
             </div>
           </div>
         </div>

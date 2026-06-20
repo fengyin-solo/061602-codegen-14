@@ -7,6 +7,7 @@ import NestScene from './NestScene.vue'
 import WeatherOverlay from './WeatherOverlay.vue'
 import BirdCard from './BirdCard.vue'
 import EventModal from './EventModal.vue'
+import VisitorModal from './VisitorModal.vue'
 import { WEATHER_COLORS } from '@/utils/constants'
 
 const router = useRouter()
@@ -14,6 +15,7 @@ const {
   state, allAdults, aliveCount,
   collectBerry, feedBird, calmBird, buryBird,
   releaseBirds, keepAndBreed, returnToStart, tryLoadGame,
+  closeVisitorModal,
 } = useGameState()
 
 onMounted(() => {
@@ -118,5 +120,11 @@ const handleCollect = (id: string) => {
         </div>
       </div>
     </div>
+
+    <VisitorModal
+      :visitor="state.visitorDay.currentVisitor"
+      :show="state.visitorDay.showModal"
+      @close="closeVisitorModal"
+    />
   </div>
 </template>
