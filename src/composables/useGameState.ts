@@ -582,8 +582,10 @@ const returnToStart = () => {
 
 const tryLoadGame = (): boolean => {
   const saved = loadGame()
-  if (saved && saved.phase === 'playing' || saved?.phase === 'breeding') {
-    Object.assign(state, saved)
+  if (saved && (saved.phase === 'playing' || saved.phase === 'breeding')) {
+    const initial = createInitialState()
+    const mergedVisitorDay = saved.visitorDay || initial.visitorDay
+    Object.assign(state, saved, { visitorDay: mergedVisitorDay })
     startGameLoop()
     return true
   }
